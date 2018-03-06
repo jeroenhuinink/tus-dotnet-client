@@ -4,8 +4,16 @@
     using System.IO;
     using System.Net;
 
+    /// <summary>
+    /// Wrapper class for HttpWebRequest
+    /// </summary>
     public class HttpClient
     {
+        /// <summary>
+        /// Performs the request.
+        /// </summary>
+        /// <returns>The http response.</returns>
+        /// <param name="request">The request.</param>
         public HttpResponse PerformRequest(HttpRequest request)
         {
             try

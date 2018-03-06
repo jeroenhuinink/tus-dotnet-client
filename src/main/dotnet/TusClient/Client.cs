@@ -6,27 +6,55 @@
     using System.Net;
     using System.Threading;
 
+    /// <summary>
+    /// Main Client class
+    /// </summary>
     public class Client
     {
         private CancellationTokenSource cancelSource = new CancellationTokenSource();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Client"/> class.
+        /// </summary>
         public Client()
         {
         }
 
+        /// <summary>
+        /// Uploading event.
+        /// </summary>
         public delegate void UploadingEvent(long bytesTransferred, long bytesTotal);
 
+        /// <summary>
+        /// Downloading event.
+        /// </summary>
         public delegate void DownloadingEvent(long bytesTransferred, long bytesTotal);
 
+        /// <summary>
+        /// Occurs when uploading.
+        /// </summary>
         public event UploadingEvent Uploading;
 
+        /// <summary>
+        /// Occurs when downloading.
+        /// </summary>
         public event DownloadingEvent Downloading;
 
+        /// <summary>
+        /// Cancel the upload.
+        /// </summary>
         public void Cancel()
         {
             this.cancelSource.Cancel();
         }
 
+        /// <summary>
+        /// Create a new upload session
+        /// </summary>
+        /// <returns>The url for the upload session</returns>
+        /// <param name="url">The url</param>
+        /// <param name="file">The file info for the file that we want to upload</param>
+        /// <param name="metadata">Metadata for the file</param>
         public string Create(string url, System.IO.FileInfo file, Dictionary<string, string> metadata = null)
         {
             if (metadata == null)
@@ -42,6 +70,13 @@
             return this.Create(url, file.Length, metadata);
         }
 
+        /// <summary>
+        /// Create a new upload session
+        /// </summary>
+        /// <returns>The url for the upload session</returns>
+        /// <param name="url">The url</param>
+        /// <param name="uploadLength">Upload length.</param>
+        /// <param name="metadata">Metadata for the file</param>
         public string Create(string url, long uploadLength, Dictionary<string, string> metadata = null)
         {
             var requestUri = new Uri(url);
@@ -75,12 +110,14 @@
             {
                 if (response.Headers.ContainsKey("Location"))
                 {
-                    Uri locationUri;
-                    if (Uri.TryCreate(response.Headers["Location"], UriKind.Relative, out locationUri))
+                    if (Uri.TryCreate(response.Headers["Location"], UriKind.Relative, out Uri locationUri))
                     {
-                        if (!locationUri.IsAbsoluteUri)
+                        var loc = locationUri.ToString();
+
+                        if (!locationUri.IsAbsoluteUri || string.IsNullOrEmpty(locationUri.Scheme) || loc.StartsWith("//", StringComparison.InvariantCultureIgnoreCase))
                         {
-                            locationUri = new Uri(requestUri, locationUri);
+                            var uri = new Uri("http:" + loc);
+                            return new Uri(requestUri, uri.PathAndQuery).ToString();
                         }
 
                         return locationUri.ToString();
@@ -101,6 +138,12 @@
             }
         }
 
+        /// <summary>
+        /// Upload a file to the specified URL
+        /// </summary>
+        /// <returns>The file to upload</returns>
+        /// <param name="url">The url to upload to</param>
+        /// <param name="file">The File info of the file to upload</param>
         public void Upload(string url, System.IO.FileInfo file)
         {
             using (var fs = new FileStream(file.FullName, FileMode.Open, FileAccess.Read))
@@ -109,6 +152,12 @@
             }
         }
 
+        /// <summary>
+        /// Upload a stream to the specified URL
+        /// </summary>
+        /// <returns>The upload.</returns>
+        /// <param name="url">The url to upload to</param>
+        /// <param name="fs">The stream to upload to</param>
         public void Upload(string url, System.IO.Stream fs)
         {
             var offest = this.GetFileOffset(url);
@@ -182,6 +231,11 @@
                 }
         }
 
+        /// <summary>
+        /// Download the specified url.
+        /// </summary>
+        /// <returns>The download.</returns>
+        /// <param name="url">URL.</param>
         public HttpResponse Download(string url)
         {
             var client = new HttpClient();
@@ -199,6 +253,11 @@
             return client.PerformRequest(request);
         }
 
+        /// <summary>
+        /// Head the specified url.
+        /// </summary>
+        /// <returns>The head.</returns>
+        /// <param name="url">URL.</param>
         public HttpResponse Head(string url)
         {
             var client = new HttpClient();
@@ -221,6 +280,11 @@
             }
         }
 
+        /// <summary>
+        /// Gets the server info.
+        /// </summary>
+        /// <returns>The server info.</returns>
+        /// <param name="url">URL.</param>
         public TusServerInfo GetServerInfo(string url)
         {
             var client = new HttpClient();
@@ -252,6 +316,11 @@
             }
         }
 
+        /// <summary>
+        /// Delete the specified url.
+        /// </summary>
+        /// <returns>The delete.</returns>
+        /// <param name="url">URL.</param>
         public bool Delete(string url)
         {
             var client = new HttpClient();
